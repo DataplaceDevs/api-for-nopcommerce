@@ -18,12 +18,12 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>..\..\nopCommerce\src\Presentation\Nop.Web\Plugins\Nop.Plugin.Api</OutputPath>
+    <OutputPath>..\..\..\Nop.Web\Plugins\Nop.Plugin.Api</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>..\..\nopCommerce\src\Presentation\Nop.Web\Plugins\Nop.Plugin.Api</OutputPath>
+    <OutputPath>..\..\..\Presentation\Nop.Web\Plugins\Nop.Plugin.Api</OutputPath>
     <OutDir>$(OutputPath)</OutDir>
   </PropertyGroup>
 
@@ -39,9 +39,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\nopCommerce\src\Libraries\Nop.Core\Nop.Core.csproj" />
-    <ProjectReference Include="..\..\nopCommerce\src\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" />
-    <ClearPluginAssemblies Include="$(MSBuildProjectDirectory)\..\..\nopCommerce\src\Build\ClearPluginAssemblies.proj" />
+    <ClearPluginAssemblies Include="$(MSBuildProjectDirectory)\..\..\..\Build\ClearPluginAssemblies.proj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Presentation\Nop.Web.Framework\Nop.Web.Framework.csproj" />
+    <ProjectReference Include="..\..\..\Presentation\Nop.Web\Nop.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

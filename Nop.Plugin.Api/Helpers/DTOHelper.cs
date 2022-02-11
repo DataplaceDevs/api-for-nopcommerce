@@ -63,7 +63,12 @@ namespace Nop.Plugin.Api.Helpers
 		private readonly IStoreService _storeService;
 		private readonly IUrlRecordService _urlRecordService;
 
-		private readonly Lazy<Task<Language>> _customerLanguage;
+        private readonly ICountryService _countryService;
+        private readonly IStateProvinceService _stateProvinceService;
+        private readonly IAddressAttributeService _addressAttributeService;
+        private readonly IGenericAttributeService _genericAttributeService;
+
+        private readonly Lazy<Task<Language>> _customerLanguage;
 
 		public DTOHelper(
 			IProductService productService,
@@ -84,7 +89,12 @@ namespace Nop.Plugin.Api.Helpers
 			IAddressService addressService,
 			IAuthenticationService authenticationService,
 			ICustomerApiService customerApiService,
-			ICurrencyService currencyService)
+			ICurrencyService currencyService,
+            ICountryService countryService,
+            IStateProvinceService stateProvinceService,
+            IAddressAttributeService addressAttributeService,
+            IGenericAttributeService genericAttributeService
+            )
 		{
 			_productService = productService;
 			_aclService = aclService;
@@ -105,8 +115,13 @@ namespace Nop.Plugin.Api.Helpers
 			_authenticationService = authenticationService;
 			_customerApiService = customerApiService;
 			_currencyService = currencyService;
+            
+            _countryService = countryService;
+            _stateProvinceService = stateProvinceService;
+            _addressAttributeService = addressAttributeService;
+            _genericAttributeService = genericAttributeService;
 
-			_customerLanguage = new Lazy<Task<Language>>(GetAuthenticatedCustomerLanguage);
+            _customerLanguage = new Lazy<Task<Language>>(GetAuthenticatedCustomerLanguage);
 		}
 
 		public async Task<ProductDto> PrepareProductDTOAsync(Product product)
@@ -178,9 +193,19 @@ namespace Nop.Plugin.Api.Helpers
 			orderDto.OrderItems = await (await _orderService.GetOrderItemsAsync(order.Id)).SelectAwait(async item => await PrepareOrderItemDTOAsync(item)).ToListAsync();
 
 			orderDto.BillingAddress = (await _addressService.GetAddressByIdAsync(order.BillingAddressId))?.ToDto();
-			orderDto.ShippingAddress = (await _addressService.GetAddressByIdAsync(order.ShippingAddressId ?? 0))?.ToDto();
+            orderDto.BillingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.BillingAddress.CountryId ?? 0)).TwoLetterIsoCode;
+            orderDto.BillingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.BillingAddress.StateProvinceId ?? 0)).Abbreviation;
+            orderDto.BillingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes").Value;
+            // desenvolver o preenchimento dos stributos inscrifed e inscriest.
 
-			return orderDto;
+            //orderDto.BillingAddress.CustomAttributes = _addressAttributeService.GetAllAddressAttributesAsync
+            //var a = _addressAttributeService.GetAddressAttributeByIdAsync
+
+            orderDto.ShippingAddress = (await _addressService.GetAddressByIdAsync(order.ShippingAddressId ?? 0))?.ToDto();
+            orderDto.ShippingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.ShippingAddress.CountryId ?? 0)).TwoLetterIsoCode;
+            orderDto.ShippingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.ShippingAddress.StateProvinceId ?? 0)).Abbreviation;
+
+            return orderDto;
 		}
 
 		public TopicDto PrepareTopicDTO(Topic topic)

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Directory;
@@ -67,6 +68,9 @@ namespace Nop.Plugin.Api.Helpers
         private readonly IStateProvinceService _stateProvinceService;
         private readonly IAddressAttributeService _addressAttributeService;
         private readonly IGenericAttributeService _genericAttributeService;
+        private readonly ICustomerAttributeService _customerAttributeService;
+        private readonly IAddressApiService _addressApiService;
+
 
         private readonly Lazy<Task<Language>> _customerLanguage;
 
@@ -93,7 +97,9 @@ namespace Nop.Plugin.Api.Helpers
             ICountryService countryService,
             IStateProvinceService stateProvinceService,
             IAddressAttributeService addressAttributeService,
-            IGenericAttributeService genericAttributeService
+            IGenericAttributeService genericAttributeService,
+            ICustomerAttributeService customerAttributeService,
+            IAddressApiService addressApiService
             )
 		{
 			_productService = productService;
@@ -120,6 +126,8 @@ namespace Nop.Plugin.Api.Helpers
             _stateProvinceService = stateProvinceService;
             _addressAttributeService = addressAttributeService;
             _genericAttributeService = genericAttributeService;
+            _customerAttributeService = customerAttributeService;
+            _addressApiService = addressApiService;
 
             _customerLanguage = new Lazy<Task<Language>>(GetAuthenticatedCustomerLanguage);
 		}
@@ -195,20 +203,56 @@ namespace Nop.Plugin.Api.Helpers
 			orderDto.BillingAddress = (await _addressService.GetAddressByIdAsync(order.BillingAddressId))?.ToDto();
             orderDto.BillingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.BillingAddress.CountryId ?? 0)).TwoLetterIsoCode;
             orderDto.BillingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.BillingAddress.StateProvinceId ?? 0)).Abbreviation;
-            orderDto.BillingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes").Value;
-            // desenvolver o preenchimento dos stributos inscrifed e inscriest.
-
-            //orderDto.BillingAddress.CustomAttributes = _addressAttributeService.GetAllAddressAttributesAsync
-            //var a = _addressAttributeService.GetAddressAttributeByIdAsync
+            orderDto.BillingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
+            orderDto.BillingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.BillingAddress.CustomAttributes, orderDto.BillingAddress);
 
             orderDto.ShippingAddress = (await _addressService.GetAddressByIdAsync(order.ShippingAddressId ?? 0))?.ToDto();
             orderDto.ShippingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.ShippingAddress.CountryId ?? 0)).TwoLetterIsoCode;
             orderDto.ShippingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.ShippingAddress.StateProvinceId ?? 0)).Abbreviation;
+            orderDto.ShippingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
+            orderDto.ShippingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.ShippingAddress.CustomAttributes, orderDto.ShippingAddress);
 
             return orderDto;
 		}
 
-		public TopicDto PrepareTopicDTO(Topic topic)
+        //public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)
+        //{
+
+        //    if (string.IsNullOrEmpty(attributesXml))
+        //        return addressDTO;
+
+        //    var xmlDoc = new XmlDocument();
+        //    xmlDoc.LoadXml(attributesXml);
+
+        //    var nodeList1 = xmlDoc.SelectNodes(@"//Attributes/CustomerAttribute");
+        //    foreach (XmlNode node1 in nodeList1)
+        //    {
+        //        if (node1.Attributes?["ID"] == null)
+        //            continue;
+
+        //        var str1 = node1.Attributes["ID"].InnerText.Trim();
+
+        //        if (!int.TryParse(str1, out var id))
+        //            continue;
+
+        //        var nodeList2 = node1.SelectNodes(@"CustomerAttributeValue/Value");
+
+        //        switch ((await _customerAttributeService.GetCustomerAttributeByIdAsync(id)).Name.Trim().ToUpper())
+        //        {
+        //            case "CPF":
+        //                addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
+        //                break;
+        //            case "RG":
+        //                addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
+        //                break;
+        //            default:
+        //                break;
+        //        }
+        //    }
+        //    return addressDTO;
+        //}
+
+        public TopicDto PrepareTopicDTO(Topic topic)
 		{
 			var topicDto = topic.ToDto();
 			return topicDto;

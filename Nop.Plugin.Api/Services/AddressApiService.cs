@@ -15,6 +15,8 @@ using Nop.Services.Common;
 using Nop.Services.Customers;
 using Nop.Services.Directory;
 
+using Nop.Plugin.Api.Helpers;
+
 namespace Nop.Plugin.Api.Services
 {
 	public class AddressApiService : IAddressApiService
@@ -93,7 +95,10 @@ namespace Nop.Plugin.Api.Services
             var addressDTO = addressEntity?.ToDto();
             addressDTO.CountryName = _countryService.GetCountryByIdAsync(addressDTO.CountryId ?? 0).Result.TwoLetterIsoCode;
             addressDTO.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(customerId, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes").Value;
-            addressDTO = await ParseSpecificAttributeValues(addressDTO.CustomAttributes, addressDTO);
+            addressDTO = await PrepareSpecificAttributeValuesAsync(addressDTO.CustomAttributes, addressDTO);
+            
+            
+            //addressDTO = await PrepareSpecificAttributeValuesAsync(addressDTO.CustomAttributes, addressDTO);
             //var a = _genericAttributeService.GetAttributesForEntityAsync(customerId, "Customer").Result.FirstOrDefault(x => x.Key== "CustomCustomerAttributes");
             //var b = _customerAttributeParser.ParseValues(a.Value, customerId);
             //var b = _genericAttributeService.GetAttributeAsync<string>(addressEntity, "CustomCustomerAttributes");
@@ -122,7 +127,7 @@ namespace Nop.Plugin.Api.Services
             return addressEntity?.ToDto();
         }
                
-        public async Task<AddressDto> ParseSpecificAttributeValues(string attributesXml, AddressDto addressDTO)
+        public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)
         {
             
             if (string.IsNullOrEmpty(attributesXml))
@@ -143,8 +148,8 @@ namespace Nop.Plugin.Api.Services
                     continue;
 
                 var nodeList2 = node1.SelectNodes(@"CustomerAttributeValue/Value");
-
-                switch (_customerAttributeService.GetCustomerAttributeByIdAsync(id).Result.Name.Trim().ToUpper())
+                
+                switch ((await _customerAttributeService.GetCustomerAttributeByIdAsync(id)).Name.Trim().ToUpper())
                 {
                     case "CPF":
                         addressDTO.InscriFed = nodeList2[0].InnerText.Trim();

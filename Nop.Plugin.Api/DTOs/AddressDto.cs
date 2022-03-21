@@ -123,6 +123,12 @@ namespace Nop.Plugin.Api.DTO
         [JsonProperty("inscriest")]
         public string InscriEst { get; set; }
 
+        /// <summary>
+        ///     Gets or sets the country name
+        /// </summary>
+        [JsonProperty("county")]
+        public string County { get; set; }
+
 
     }
 }

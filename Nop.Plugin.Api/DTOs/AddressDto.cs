@@ -50,6 +50,13 @@ namespace Nop.Plugin.Api.DTO
         [JsonProperty("state_province_id")]
         public int? StateProvinceId { get; set; }
 
+        //OS 233245
+        /// <summary>
+        ///     Gets or sets the state/province identifier
+        /// </summary>
+        [JsonProperty("state_province_abbreviation")]
+        public string StateProvinceAbbreviation { get; set; }
+
         /// <summary>
         ///     Gets or sets the city
         /// </summary>
@@ -103,5 +110,25 @@ namespace Nop.Plugin.Api.DTO
         /// </summary>
         [JsonProperty("province")]
         public string StateProvinceName { get; set; }
+
+        /// <summary>
+        ///     Pega ou seta a inscricao federal do cliente (CPF/CNPJ)
+        /// </summary>
+        [JsonProperty("inscrifed")]
+        public string InscriFed { get; set; }
+
+        /// <summary>
+        ///     Pega ou seta a inscricao estadual do cliente (RG/INSCRICAO ESTADUAL)
+        /// </summary>
+        [JsonProperty("inscriest")]
+        public string InscriEst { get; set; }
+
+        /// <summary>
+        ///     Gets or sets the country name
+        /// </summary>
+        [JsonProperty("county")]
+        public string County { get; set; }
+
+
     }
 }

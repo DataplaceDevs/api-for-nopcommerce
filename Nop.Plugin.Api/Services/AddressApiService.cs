@@ -151,10 +151,10 @@ namespace Nop.Plugin.Api.Services
                 
                 switch ((await _customerAttributeService.GetCustomerAttributeByIdAsync(id)).Name.Trim().ToUpper())
                 {
-                    case "CPF":
+                    case "CPF/CNPJ":
                         addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
                         break;
-                    case "RG":
+                    case "RG/IE":
                         addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
                         break;
                     default:

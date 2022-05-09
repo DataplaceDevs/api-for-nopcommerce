@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core;
 using Nop.Core.Domain.Customers;
+using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Infrastructure;
 using Nop.Plugin.Api.Attributes;
@@ -32,6 +33,7 @@ using Nop.Services.Discounts;
 using Nop.Services.Localization;
 using Nop.Services.Logging;
 using Nop.Services.Media;
+using Nop.Services.Messages;
 using Nop.Services.Orders;
 using Nop.Services.Payments;
 using Nop.Services.Security;
@@ -58,56 +60,63 @@ namespace Nop.Plugin.Api.Controllers
 		private readonly IShoppingCartService _shoppingCartService;
 		private readonly IStoreContext _storeContext;
 
-		// We resolve the order settings this way because of the tests.
-		// The auto mocking does not support concreate types as dependencies. It supports only interfaces.
-		private OrderSettings _orderSettings;
+        private readonly IWorkflowMessageService _workflowMessageService;
+        private readonly IDownloadService _downloadService;
 
-		public OrdersController(
-			IOrderApiService orderApiService,
-			IJsonFieldsSerializer jsonFieldsSerializer,
-			IAclService aclService,
-			ICustomerService customerService,
-			IStoreMappingService storeMappingService,
-			IStoreService storeService,
-			IDiscountService discountService,
-			ICustomerActivityService customerActivityService,
-			ILocalizationService localizationService,
-			IProductService productService,
-			IFactory<Order> factory,
-			IOrderProcessingService orderProcessingService,
-			IOrderService orderService,
-			IShoppingCartService shoppingCartService,
-			IGenericAttributeService genericAttributeService,
-			IStoreContext storeContext,
-			IShippingService shippingService,
-			IPictureService pictureService,
-			IDTOHelper dtoHelper,
-			IProductAttributeConverter productAttributeConverter,
-			IPaymentService paymentService,
-			IPdfService pdfService,
-			IPermissionService permissionService,
-			IAuthenticationService authenticationService)
-			: base(jsonFieldsSerializer, aclService, customerService, storeMappingService,
-				   storeService, discountService, customerActivityService, localizationService, pictureService)
-		{
-			_orderApiService = orderApiService;
-			_factory = factory;
-			_orderProcessingService = orderProcessingService;
-			_orderService = orderService;
-			_shoppingCartService = shoppingCartService;
-			_genericAttributeService = genericAttributeService;
-			_storeContext = storeContext;
-			_shippingService = shippingService;
-			_dtoHelper = dtoHelper;
-			_productService = productService;
-			_productAttributeConverter = productAttributeConverter;
-			_paymentService = paymentService;
-			_pdfService = pdfService;
-			_permissionService = permissionService;
-			_authenticationService = authenticationService;
-		}
+        // We resolve the order settings this way because of the tests.
+        // The auto mocking does not support concreate types as dependencies. It supports only interfaces.
+        private OrderSettings _orderSettings;
 
-		private OrderSettings OrderSettings => _orderSettings ?? (_orderSettings = EngineContext.Current.Resolve<OrderSettings>());
+        public OrdersController(
+            IOrderApiService orderApiService,
+            IJsonFieldsSerializer jsonFieldsSerializer,
+            IAclService aclService,
+            ICustomerService customerService,
+            IStoreMappingService storeMappingService,
+            IStoreService storeService,
+            IDiscountService discountService,
+            ICustomerActivityService customerActivityService,
+            ILocalizationService localizationService,
+            IProductService productService,
+            IFactory<Order> factory,
+            IOrderProcessingService orderProcessingService,
+            IOrderService orderService,
+            IShoppingCartService shoppingCartService,
+            IGenericAttributeService genericAttributeService,
+            IStoreContext storeContext,
+            IShippingService shippingService,
+            IPictureService pictureService,
+            IDTOHelper dtoHelper,
+            IProductAttributeConverter productAttributeConverter,
+            IPaymentService paymentService,
+            IPdfService pdfService,
+            IPermissionService permissionService,
+            IAuthenticationService authenticationService,
+            IWorkflowMessageService workflowMessageService, 
+            IDownloadService downloadService)
+            : base(jsonFieldsSerializer, aclService, customerService, storeMappingService,
+                   storeService, discountService, customerActivityService, localizationService, pictureService)
+        {
+            _orderApiService = orderApiService;
+            _factory = factory;
+            _orderProcessingService = orderProcessingService;
+            _orderService = orderService;
+            _shoppingCartService = shoppingCartService;
+            _genericAttributeService = genericAttributeService;
+            _storeContext = storeContext;
+            _shippingService = shippingService;
+            _dtoHelper = dtoHelper;
+            _productService = productService;
+            _productAttributeConverter = productAttributeConverter;
+            _paymentService = paymentService;
+            _pdfService = pdfService;
+            _permissionService = permissionService;
+            _authenticationService = authenticationService;
+            _workflowMessageService = workflowMessageService;
+            _downloadService = downloadService;
+        }
+
+        private OrderSettings OrderSettings => _orderSettings ?? (_orderSettings = EngineContext.Current.Resolve<OrderSettings>());
 
 		/// <summary>
 		///     Receive a list of all Orders
@@ -540,9 +549,112 @@ namespace Nop.Plugin.Api.Controllers
 			return Ok(document);
 		}
 
-		#region Private methods
+        [HttpPost]
+        [Route("/api/orders/order-note", Name = "CreateOrderNote")]
+        [ProducesResponseType(typeof(OrderNoteRootObject), (int)HttpStatusCode.OK)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.Unauthorized)]
+        [ProducesResponseType(typeof(ErrorsRootObject), (int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(ErrorsRootObject), 422)]
+        public async Task<IActionResult> CreateOrderNote(
+            [FromBody]
+            [ModelBinder(typeof(JsonModelBinder<OrderNoteDto>))]
+            Delta<OrderNoteDto> orderNoteDelta)
+        {            
+            if (orderNoteDelta.Dto.OrderId == 0)
+            {
+                return Error(HttpStatusCode.BadRequest, "OrderId", "invalid order id");
+            }
+            if (orderNoteDelta.Dto.Note == string.Empty)
+            {
+                return Error(HttpStatusCode.BadRequest, "Note", "Note cannot be blank");
+            }
 
-		private async Task<bool> CheckPermissions(int? customerId)
+            var orderNote = new OrderNote
+            {
+                OrderId = orderNoteDelta.Dto.OrderId,
+                DisplayToCustomer = orderNoteDelta.Dto.DisplayToCustomer,
+                Note = orderNoteDelta.Dto.Note,
+                DownloadId = orderNoteDelta.Dto.DownloadId,
+                CreatedOnUtc = DateTime.UtcNow
+            };
+
+            await _orderService.InsertOrderNoteAsync(orderNote);
+
+            if (orderNoteDelta.Dto.DisplayToCustomer)
+            {
+                await _workflowMessageService.SendNewOrderNoteAddedCustomerNotificationAsync(orderNote, 0);
+            }
+            var orderNoteRootObject = new OrderNoteRootObject();
+            var orderNoteDto = await _dtoHelper.PrepareOrderNoteDtoAsync(orderNote);
+            orderNoteRootObject.OrderNote = orderNoteDto;
+
+            var json = JsonFieldsSerializer.Serialize(orderNoteRootObject, string.Empty);
+            return new RawJsonActionResult(json);
+        }
+
+        //[HttpPost]
+        //[Route("/api/orders/download-file-note", Name = "DownloadFileNote")]
+        //[ProducesResponseType(typeof(DownloadRootObject), (int)HttpStatusCode.OK)]
+        //[ProducesResponseType(typeof(string), (int)HttpStatusCode.Unauthorized)]
+        //[ProducesResponseType(typeof(ErrorsRootObject), (int)HttpStatusCode.BadRequest)]
+        //[ProducesResponseType(typeof(string), (int)HttpStatusCode.NotFound)]
+        //[ProducesResponseType(typeof(ErrorsRootObject), 422)]
+        //public async Task<IActionResult> DownloadFileNote(
+        //    [FromBody]
+        //    [ModelBinder(typeof(JsonModelBinder<DownloadDto>))]
+        //    Delta<DownloadDto> downloadDtoDelta)
+        //{
+        //    if (downloadDtoDelta.Dto.ContentType == string.Empty)
+        //    {
+        //        return Error(HttpStatusCode.BadRequest, "content_type", "Content type cannot be empty");
+        //    }
+        //    if (downloadDtoDelta.Dto.DownloadBinary.ToString() == string.Empty)
+        //    {
+        //        return Error(HttpStatusCode.BadRequest, "download_binary", "Binary field content cannot be empty");
+        //    }
+        //    if (downloadDtoDelta.Dto.DownloadUrl == string.Empty)
+        //    {
+        //        return Error(HttpStatusCode.BadRequest, "download_url", "Download url field cannot be empty");
+        //    }
+        //    if (downloadDtoDelta.Dto.Extension == string.Empty)
+        //    {
+        //        return Error(HttpStatusCode.BadRequest, "extension", "File extension field cannot be empty");
+        //    }
+        //    if (downloadDtoDelta.Dto.Filename == string.Empty)
+        //    {
+        //        return Error(HttpStatusCode.BadRequest, "file_name", "File name field cannot be empty");
+        //    }
+
+        //    //var downloadFile = new Download
+        //    //{
+        //    //    Id = downloadDtoDelta.Dto.Id,
+        //    //    DownloadGuid = Guid.NewGuid(),
+        //    //    UseDownloadUrl = downloadDtoDelta.Dto.UseDownloadUrl,
+        //    //    DownloadUrl = downloadDtoDelta.Dto.DownloadUrl,
+        //    //    DownloadBinary = utf8.getbytes downloadDtoDelta.Dto.DownloadBinary,
+        //    //    ContentType = downloadDtoDelta.Dto.ContentType,
+        //    //    Filename = downloadDtoDelta.Dto.Filename,
+        //    //    Extension = downloadDtoDelta.Dto.Extension,                
+        //    //    IsNew = true                
+        //    //};
+
+        //    //await _downloadService.InsertDownloadAsync(downloadFile);
+
+        //    //var downloadRootObject = new DownloadRootObject();
+        //    //var downloadDto = await _dtoHelper.PrepareDownloadDtoAsync(downloadFile);
+        //    //downloadRootObject.Download = downloadDto;
+
+        //    //var json = JsonFieldsSerializer.Serialize(downloadRootObject, string.Empty);
+        //    //return new RawJsonActionResult(json);
+        //    return null;
+
+        //}
+
+
+        #region Private methods
+
+        private async Task<bool> CheckPermissions(int? customerId)
 		{
 			var currentCustomer = await _authenticationService.GetAuthenticatedCustomerAsync();
 			if (currentCustomer is null) // authenticated, but does not exist in db

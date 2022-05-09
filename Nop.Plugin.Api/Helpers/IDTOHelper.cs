@@ -2,6 +2,7 @@
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
+using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Stores;
 using Nop.Core.Domain.Topics;
@@ -35,5 +36,8 @@ namespace Nop.Plugin.Api.Helpers
         SpecificationAttributeDto PrepareSpecificationAttributeDto(SpecificationAttribute specificationAttribute);
         Task<ManufacturerDto> PrepareManufacturerDtoAsync(Manufacturer manufacturer);
         TopicDto PrepareTopicDTO(Topic topic);
+
+        Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote);
+        Task<DownloadDto> PrepareDownloadDtoAsync(Download download);
     }
 }

@@ -7,6 +7,7 @@ using Nop.Core.Domain.Common;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
+using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Messages;
 using Nop.Core.Domain.Orders;
 using Nop.Core.Domain.Stores;
@@ -87,6 +88,10 @@ namespace Nop.Plugin.Api.AutoMapper
             CreateMap<Country, CountryDto>();
 
             CreateMap<Currency, CurrencyDto>();
+
+            CreateMap<OrderNote, OrderNoteDto>();
+
+            CreateMap<Download, DownloadDto>();
         }
 
         public int Order => 0;

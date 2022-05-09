@@ -215,6 +215,16 @@ namespace Nop.Plugin.Api.Helpers
             return orderDto;
 		}
 
+        public async Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote)
+        {            
+            return orderNote.ToDto();
+        }
+
+        public async Task<DownloadDto> PrepareDownloadDtoAsync(Download download)
+        {
+            return download.ToDto();
+        }
+
         //public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)
         //{
 

@@ -22,6 +22,7 @@ using Nop.Plugin.Api.DTO.ProductAttributes;
 using Nop.Plugin.Api.DTO.Products;
 using Nop.Plugin.Api.DTO.ShoppingCarts;
 using Nop.Plugin.Api.DTO.SpecificationAttributes;
+using Nop.Plugin.Api.DTO.StatesProvinces;
 using Nop.Plugin.Api.DTO.Stores;
 using Nop.Plugin.Api.DTOs.Topics;
 using Nop.Plugin.Api.MappingExtensions;
@@ -223,6 +224,11 @@ namespace Nop.Plugin.Api.Helpers
         public async Task<DownloadDto> PrepareDownloadDtoAsync(Download download)
         {
             return download.ToDto();
+        }
+
+        public async Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince)
+        {
+            return stateProvince.ToDto();
         }
 
         //public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)

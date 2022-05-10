@@ -30,6 +30,7 @@ using Nop.Plugin.Api.DTO.ProductManufacturerMappings;
 using Nop.Plugin.Api.DTO.Products;
 using Nop.Plugin.Api.DTO.ShoppingCarts;
 using Nop.Plugin.Api.DTO.SpecificationAttributes;
+using Nop.Plugin.Api.DTO.StatesProvinces;
 using Nop.Plugin.Api.DTO.Stores;
 using Nop.Plugin.Api.DTOs.Topics;
 using Nop.Plugin.Api.MappingExtensions;
@@ -92,6 +93,8 @@ namespace Nop.Plugin.Api.AutoMapper
             CreateMap<OrderNote, OrderNoteDto>();
 
             CreateMap<Download, DownloadDto>();
+
+            CreateMap<StateProvince, StateProvinceDto>();
         }
 
         public int Order => 0;

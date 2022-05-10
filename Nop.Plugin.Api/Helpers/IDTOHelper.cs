@@ -16,6 +16,7 @@ using Nop.Plugin.Api.DTO.ProductAttributes;
 using Nop.Plugin.Api.DTO.Products;
 using Nop.Plugin.Api.DTO.ShoppingCarts;
 using Nop.Plugin.Api.DTO.SpecificationAttributes;
+using Nop.Plugin.Api.DTO.StatesProvinces;
 using Nop.Plugin.Api.DTO.Stores;
 using Nop.Plugin.Api.DTOs.Topics;
 
@@ -39,5 +40,7 @@ namespace Nop.Plugin.Api.Helpers
 
         Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote);
         Task<DownloadDto> PrepareDownloadDtoAsync(Download download);
+        Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince);
+
     }
 }

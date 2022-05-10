@@ -15,14 +15,14 @@ namespace Nop.Plugin.Api.Models.StatesProvincesParameters
         public StateProvinceParametersModel()
         {
             Abbreviation = string.Empty;
-            CountryId = 0;
+            Country = string.Empty;
         }
 
         [JsonProperty("abbreviation")]
         public string Abbreviation { get; set; }
 
-        [JsonProperty("country_id")]
-        public int CountryId { get; set; }
+        [JsonProperty("country")]
+        public string Country { get; set; }
 
     }
 }

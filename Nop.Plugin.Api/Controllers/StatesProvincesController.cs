@@ -26,6 +26,7 @@ namespace Nop.Plugin.Api.Controllers
     public class StatesProvincesController : BaseApiController
     {
         private readonly IDTOHelper _dtoHelper;
+        private readonly ICountryService _countryService;
         private readonly IStateProvinceService _stateProvinceService;
         public StatesProvincesController(
             IJsonFieldsSerializer jsonFieldsSerializer,
@@ -38,11 +39,13 @@ namespace Nop.Plugin.Api.Controllers
             ILocalizationService localizationService,
             IPictureService pictureService,
             IDTOHelper dtoHelper,
+            ICountryService countryService,
             IStateProvinceService stateProvinceService
             ) : base(jsonFieldsSerializer, aclService, customerService, storeMappingService, storeService, discountService, customerActivityService, localizationService, pictureService)
         {
             _stateProvinceService = stateProvinceService;
             _dtoHelper = dtoHelper;
+            _countryService = countryService;
         }
 
         /// <summary>
@@ -59,7 +62,27 @@ namespace Nop.Plugin.Api.Controllers
         [GetRequestsErrorInterceptorActionFilter]
         public async Task<IActionResult> GetStatesProvinces([FromQuery] StateProvinceParametersModel parameters)
         {
-            var stateProvince = await _stateProvinceService.GetStateProvinceByAbbreviationAsync(parameters.Abbreviation, parameters.CountryId);
+            if (parameters.Abbreviation == string.Empty)
+            {
+                return Error(HttpStatusCode.BadRequest, "abbreviation", "invalid abbreviation code");
+            }
+            if (parameters.Country == string.Empty)
+            {
+                return Error(HttpStatusCode.BadRequest, "country", "invalid country code");
+            }
+
+            var country = await _countryService.GetCountryByTwoLetterIsoCodeAsync(parameters.Country);
+            if (country == null)
+            {
+                return Error(HttpStatusCode.NotFound, "country", "not found");
+            }
+
+            var stateProvince = await _stateProvinceService.GetStateProvinceByAbbreviationAsync(parameters.Abbreviation, country.Id);
+            if (stateProvince == null)
+            {
+                return Error(HttpStatusCode.NotFound, "stateProvince", "not found");
+            }
+
             var statesProvincesRootObject = new StateProvinceRootObject();
             var stateProvinceDto = await _dtoHelper.PrepareStateProvinceDtoAsync(stateProvince);
             statesProvincesRootObject.StateProvince = stateProvinceDto;

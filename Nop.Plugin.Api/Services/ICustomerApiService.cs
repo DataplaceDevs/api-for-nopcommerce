@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
+using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Customers;
 using Nop.Plugin.Api.Infrastructure;
 
@@ -49,5 +50,9 @@ namespace Nop.Plugin.Api.Services
         /// </summary>
         /// <param name="currency">Currency</param>
         Task SetCustomerCurrencyAsync(Customer customer, Currency currency);
+
+        Task SetCustomerAttributeAsync(AddressDto addressDto, int idCustomField, string value);
+
+        Task<int> GetCustomerAttributeId(string attributeName);
     }
 }

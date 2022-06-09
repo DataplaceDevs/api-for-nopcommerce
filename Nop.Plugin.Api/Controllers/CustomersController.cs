@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -297,13 +298,30 @@ namespace Nop.Plugin.Api.Controllers
 				return Error();
 			}
 
-			//If the validation has passed the customerDelta object won't be null for sure so we don't need to check for this.
+            //If the validation has passed the customerDelta object won't be null for sure so we don't need to check for this.
 
-			// Inserting the new customer
-			var newCustomer = await _factory.InitializeAsync();
+            if (customerDelta.Dto.BillingAddress == null)
+            {
+                return Error(HttpStatusCode.NotFound, "billing_address", "cannot be null");
+            }
+            if (customerDelta.Dto.ShippingAddress == null)
+            {
+                return Error(HttpStatusCode.NotFound, "shipping_address", "cannot be null");
+            }
+
+            // Inserting the new customer
+            var newCustomer = await _factory.InitializeAsync();
 			customerDelta.Merge(newCustomer);
 
-			foreach (var address in customerDelta.Dto.Addresses)
+            var idCPFCNPJ = await _customerApiService.GetCustomerAttributeId(CustomerDocuments.CPFCNPJ_ATTRIBUTE_NAME);
+            var idRGIE = await _customerApiService.GetCustomerAttributeId(CustomerDocuments.RGIE_ATTRIBUTE_NAME);
+            await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idCPFCNPJ, customerDelta.Dto.BillingAddress.InscriFed);
+            await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idRGIE, customerDelta.Dto.BillingAddress.InscriEst);
+            
+            await CustomerService.InsertCustomerAsync(newCustomer);
+
+            ICollection<AddressDto> addressesDto = new List<AddressDto>();
+            foreach (var address in customerDelta.Dto.Addresses)
 			{
 				// we need to explicitly set the date as if it is not specified
 				// it will default to 01/01/0001 which is not supported by SQL Server and throws and exception
@@ -311,13 +329,24 @@ namespace Nop.Plugin.Api.Controllers
 				{
 					address.CreatedOnUtc = DateTime.UtcNow;
 				}
+                var addressAux = await InsertNewCustomerAddressIfDoesNotExist(newCustomer, address);
+                addressesDto.Add(addressAux.ToDto());
+                //await CustomerService.InsertCustomerAddressAsync(newCustomer, address.ToEntity());
+            }
 
-				await CustomerService.InsertCustomerAddressAsync(newCustomer, address.ToEntity());
-			}
+            AddressDto billingAddressDto = new AddressDto();
+            var billingAddress = await InsertNewCustomerAddressIfDoesNotExist(newCustomer, customerDelta.Dto.BillingAddress);
+            newCustomer.BillingAddressId = billingAddress.Id;
+            await CustomerService.UpdateCustomerAsync(newCustomer);
+            billingAddressDto = billingAddress.ToDto();
 
-			await CustomerService.InsertCustomerAsync(newCustomer);
+            AddressDto shippingAddressDto = new AddressDto();
+            var shippingAddress = await InsertNewCustomerAddressIfDoesNotExist(newCustomer, customerDelta.Dto.ShippingAddress);
+            newCustomer.ShippingAddressId = shippingAddress.Id;
+            await CustomerService.UpdateCustomerAsync(newCustomer);
+            shippingAddressDto = shippingAddress.ToDto();
 
-			await InsertFirstAndLastNameGenericAttributesAsync(customerDelta.Dto.FirstName, customerDelta.Dto.LastName, newCustomer);
+            await InsertFirstAndLastNameGenericAttributesAsync(customerDelta.Dto.FirstName, customerDelta.Dto.LastName, newCustomer);
 
 			if (customerDelta.Dto.LanguageId is int languageId && await _languageService.GetLanguageByIdAsync(languageId) != null)
 			{
@@ -329,8 +358,8 @@ namespace Nop.Plugin.Api.Controllers
 				await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CurrencyIdAttribute, currencyId);
 			}
 
-			//password
-			if (!string.IsNullOrWhiteSpace(customerDelta.Dto.Password))
+            //password
+            if (!string.IsNullOrWhiteSpace(customerDelta.Dto.Password))
 			{
 				await AddPasswordAsync(customerDelta.Dto.Password, newCustomer);
 			}
@@ -348,19 +377,47 @@ namespace Nop.Plugin.Api.Controllers
 			// We do not prepare the shopping cart items because we have a separate endpoint for them.
 			var newCustomerDto = newCustomer.ToDto();
 
-			// This is needed because the entity framework won't populate the navigation properties automatically
-			// and the country will be left null. So we do it by hand here.
-			await PopulateAddressCountryNamesAsync(newCustomerDto);
+            // Set the fist and last name separately because they are not part of the customer entity, but are saved in the generic attributes.
+            newCustomerDto.FirstName = customerDelta.Dto.FirstName;
+            newCustomerDto.LastName = customerDelta.Dto.LastName;
 
-			// Set the fist and last name separately because they are not part of the customer entity, but are saved in the generic attributes.
-			newCustomerDto.FirstName = customerDelta.Dto.FirstName;
-			newCustomerDto.LastName = customerDelta.Dto.LastName;
+            newCustomerDto.LanguageId = customerDelta.Dto.LanguageId;
+            newCustomerDto.CurrencyId = customerDelta.Dto.CurrencyId;
 
-			newCustomerDto.LanguageId = customerDelta.Dto.LanguageId;
-			newCustomerDto.CurrencyId = customerDelta.Dto.CurrencyId;
+            // Populate address, billing and shipping address in object.
+            newCustomerDto.BillingAddress = billingAddressDto;
+            newCustomerDto.ShippingAddress = shippingAddressDto;
+            newCustomerDto.Addresses = addressesDto;
 
-			//activity log
-			await CustomerActivityService.InsertActivityAsync("AddNewCustomer", await LocalizationService.GetResourceAsync("ActivityLog.AddNewCustomer"), newCustomer);
+            newCustomerDto.BillingAddress.InscriFed = customerDelta.Dto.BillingAddress.InscriFed;
+            newCustomerDto.BillingAddress.InscriEst = customerDelta.Dto.BillingAddress.InscriEst;
+            newCustomerDto.ShippingAddress.InscriFed = customerDelta.Dto.ShippingAddress.InscriFed;
+            newCustomerDto.ShippingAddress.InscriEst = customerDelta.Dto.ShippingAddress.InscriEst;
+            newCustomerDto.DateOfBirth = customerDelta.Dto.DateOfBirth;
+            newCustomerDto.Gender = customerDelta.Dto.Gender;
+            newCustomerDto.CreatedOnUtc = customerDelta.Dto.CreatedOnUtc ?? DateTime.UtcNow;
+            newCustomerDto.LastActivityDateUtc = customerDelta.Dto.LastActivityDateUtc ?? DateTime.UtcNow;
+
+            // This is needed because the entity framework won't populate the navigation properties automatically
+            // and the country will be left null. So we do it by hand here.
+            await PopulateAddressCountryNamesAsync(newCustomerDto);
+
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.GenderAttribute, customerDelta.Dto.Gender);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.DateOfBirthAttribute, customerDelta.Dto.DateOfBirth);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.StreetAddressAttribute, customerDelta.Dto.BillingAddress.Address1);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.ZipPostalCodeAttribute, customerDelta.Dto.BillingAddress.ZipPostalCode);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CityAttribute, customerDelta.Dto.BillingAddress.City);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CountyAttribute, customerDelta.Dto.BillingAddress.County);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CountryIdAttribute, customerDelta.Dto.BillingAddress.CountryId);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.StateProvinceIdAttribute, customerDelta.Dto.BillingAddress.StateProvinceId);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.PhoneAttribute, customerDelta.Dto.BillingAddress.PhoneNumber);
+            if (!string.IsNullOrEmpty(customerDelta.Dto.BillingAddress.CustomAttributes))
+            {
+                await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CustomCustomerAttributes, customerDelta.Dto.BillingAddress.CustomAttributes);
+            }            
+
+            //activity log
+            await CustomerActivityService.InsertActivityAsync("AddNewCustomer", await LocalizationService.GetResourceAsync("ActivityLog.AddNewCustomer"), newCustomer);
 
 			var customersRootObject = new CustomersRootObject();
 
@@ -368,7 +425,7 @@ namespace Nop.Plugin.Api.Controllers
 
 			var json = JsonFieldsSerializer.Serialize(customersRootObject, string.Empty);
 
-			return new RawJsonActionResult(json);
+            return new RawJsonActionResult(json);
 		}
 
 		[HttpPut]
@@ -389,8 +446,17 @@ namespace Nop.Plugin.Api.Controllers
 				return Error();
 			}
 
-			// Updateting the customer
-			var currentCustomer = await _customerApiService.GetCustomerEntityByIdAsync(customerDelta.Dto.Id);
+            if (customerDelta.Dto.BillingAddress == null)
+            {
+                return Error(HttpStatusCode.NotFound, "billing_address", "cannot be null");
+            }
+            if (customerDelta.Dto.ShippingAddress == null)
+            {
+                return Error(HttpStatusCode.NotFound, "shipping_address", "cannot be null");
+            }
+
+            // Updateting the customer
+            var currentCustomer = await _customerApiService.GetCustomerEntityByIdAsync(customerDelta.Dto.Id);
 
 			if (currentCustomer == null)
 			{
@@ -404,26 +470,43 @@ namespace Nop.Plugin.Api.Controllers
 				await AddValidRolesAsync(customerDelta, currentCustomer);
 			}
 
-			if (customerDelta.Dto.Addresses.Count > 0)
-			{
-				var currentCustomerAddresses = (await CustomerService.GetAddressesByCustomerIdAsync(currentCustomer.Id)).ToDictionary(address => address.Id, address => address);
-
-				foreach (var passedAddress in customerDelta.Dto.Addresses)
+            ICollection<AddressDto> addressesDto = new List<AddressDto>();
+            var currentCustomerAddresses = (await CustomerService.GetAddressesByCustomerIdAsync(currentCustomer.Id)).ToDictionary(address => address.Id, address => address);
+            if (customerDelta.Dto.Addresses.Count > 0)
+			{                
+                foreach (var passedAddress in customerDelta.Dto.Addresses)
 				{
 					var addressEntity = passedAddress.ToEntity();
 
-					if (currentCustomerAddresses.ContainsKey(passedAddress.Id))
+					if (passedAddress.Id != 0 && currentCustomerAddresses.ContainsKey(passedAddress.Id))
 					{
 						_mappingHelper.Merge(passedAddress, currentCustomerAddresses[passedAddress.Id]);
-					}
+                        addressesDto.Add(passedAddress);
+
+                    }
 					else
 					{
-						await CustomerService.InsertCustomerAddressAsync(currentCustomer, addressEntity);
-					}
+                        var addressAux = await InsertNewCustomerAddressIfDoesNotExist(currentCustomer, addressEntity.ToDto());
+                        addressesDto.Add(addressAux.ToDto());
+                    }
 				}
 			}
 
-			await CustomerService.UpdateCustomerAsync(currentCustomer);
+            AddressDto billingAddressDto = new AddressDto();
+            if (currentCustomerAddresses.ContainsKey(currentCustomer.BillingAddressId ?? 0))
+            {
+                _mappingHelper.Merge(customerDelta.Dto.BillingAddress, currentCustomerAddresses[currentCustomer.BillingAddressId ?? 0]);
+                billingAddressDto = customerDelta.Dto.BillingAddress;                
+            }
+
+            AddressDto shippingAddressDto = new AddressDto();
+            if (currentCustomerAddresses.ContainsKey(currentCustomer.ShippingAddressId ?? 0))
+            {
+                _mappingHelper.Merge(customerDelta.Dto.ShippingAddress, currentCustomerAddresses[currentCustomer.ShippingAddressId ?? 0]);
+                shippingAddressDto = customerDelta.Dto.ShippingAddress;                
+            }
+
+            await CustomerService.UpdateCustomerAsync(currentCustomer);
 
 			await InsertFirstAndLastNameGenericAttributesAsync(customerDelta.Dto.FirstName, customerDelta.Dto.LastName, currentCustomer);
 
@@ -461,9 +544,15 @@ namespace Nop.Plugin.Api.Controllers
 			updatedCustomer.LastName = await _genericAttributeService.GetAttributeAsync<string>(currentCustomer, NopCustomerDefaults.LastNameAttribute);
 			updatedCustomer.LanguageId = await _genericAttributeService.GetAttributeAsync<int>(currentCustomer, NopCustomerDefaults.LanguageIdAttribute);
 			updatedCustomer.CurrencyId = await _genericAttributeService.GetAttributeAsync<int>(currentCustomer, NopCustomerDefaults.CurrencyIdAttribute);
+            updatedCustomer.Gender = await _genericAttributeService.GetAttributeAsync<string>(currentCustomer, NopCustomerDefaults.GenderAttribute);
+            updatedCustomer.DateOfBirth = await _genericAttributeService.GetAttributeAsync<DateTime>(currentCustomer, NopCustomerDefaults.DateOfBirthAttribute);
 
-			//activity log
-			await CustomerActivityService.InsertActivityAsync("UpdateCustomer", await LocalizationService.GetResourceAsync("ActivityLog.UpdateCustomer"), currentCustomer);
+            updatedCustomer.Addresses = addressesDto;
+            updatedCustomer.BillingAddress = billingAddressDto;
+            updatedCustomer.ShippingAddress = shippingAddressDto;
+
+            //activity log
+            await CustomerActivityService.InsertActivityAsync("UpdateCustomer", await LocalizationService.GetResourceAsync("ActivityLog.UpdateCustomer"), currentCustomer);
 
 			var customersRootObject = new CustomersRootObject();
 
@@ -677,7 +766,7 @@ namespace Nop.Plugin.Api.Controllers
 			if (string.IsNullOrEmpty(address.CountryName) && address.CountryId.HasValue)
 			{
 				var country = await _countryService.GetCountryByIdAsync(address.CountryId.Value);
-				address.CountryName = country.Name;
+				address.CountryName = country.TwoLetterIsoCode;
 			}
 		}
 

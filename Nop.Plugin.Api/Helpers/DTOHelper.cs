@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Nop.Core.Domain.Catalog;
 using Nop.Core.Domain.Common;
+using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Media;
@@ -13,6 +14,7 @@ using Nop.Core.Domain.Stores;
 using Nop.Core.Domain.Topics;
 using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Categories;
+using Nop.Plugin.Api.DTO.CustomerAttributes;
 using Nop.Plugin.Api.DTO.Images;
 using Nop.Plugin.Api.DTO.Languages;
 using Nop.Plugin.Api.DTO.Manufacturers;
@@ -229,6 +231,11 @@ namespace Nop.Plugin.Api.Helpers
         public async Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince)
         {
             return stateProvince.ToDto();
+        }
+
+        public async Task<CustomerAttributesDto> PrepareCustomerAttributesDtoAsync(CustomerAttribute customerAttribute)
+        {
+            return customerAttribute.ToDto();
         }
 
         //public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)

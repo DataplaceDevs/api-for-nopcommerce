@@ -589,5 +589,9 @@ namespace Nop.Plugin.Api.DTO.Products
 
         [JsonProperty("se_name")]
         public string SeName { get; set; }
+
+        [JsonProperty("tier_prices")]
+        public List<TierPriceDto> TierPrices { get; set; }
+
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Nop.Core.Domain.Catalog;
+using Nop.Core.Domain.Customers;
 using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Media;
@@ -8,6 +9,7 @@ using Nop.Core.Domain.Stores;
 using Nop.Core.Domain.Topics;
 using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Categories;
+using Nop.Plugin.Api.DTO.CustomerAttributes;
 using Nop.Plugin.Api.DTO.Languages;
 using Nop.Plugin.Api.DTO.Manufacturers;
 using Nop.Plugin.Api.DTO.OrderItems;
@@ -41,6 +43,7 @@ namespace Nop.Plugin.Api.Helpers
         Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote);
         Task<DownloadDto> PrepareDownloadDtoAsync(Download download);
         Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince);
+        Task<CustomerAttributesDto> PrepareCustomerAttributesDtoAsync(CustomerAttribute customerAttribute);
 
     }
 }

@@ -49,7 +49,7 @@ namespace Nop.Plugin.Api.Controllers
         }
 
         /// <summary>
-        ///     Receive a list of all Orders
+        ///     Receive data from states and provinces
         /// </summary>
         /// <response code="200">OK</response>
         /// <response code="400">Bad Request</response>

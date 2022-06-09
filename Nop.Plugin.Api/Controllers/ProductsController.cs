@@ -18,6 +18,7 @@ using Nop.Plugin.Api.Helpers;
 using Nop.Plugin.Api.Infrastructure;
 using Nop.Plugin.Api.JSON.ActionResults;
 using Nop.Plugin.Api.JSON.Serializers;
+using Nop.Plugin.Api.MappingExtensions;
 using Nop.Plugin.Api.ModelBinders;
 using Nop.Plugin.Api.Models.ProductsParameters;
 using Nop.Plugin.Api.Services;
@@ -259,6 +260,8 @@ namespace Nop.Plugin.Api.Controllers
 
             UpdateRequiredProducts(product, productDelta.Dto.RequiredProductIds);
 
+            await AddTierPricesAsync(product, productDelta.Dto.TierPrices);
+
             await _productService.UpdateProductAsync(product);
 
             await CustomerActivityService.InsertActivityAsync("AddNewProduct", await LocalizationService.GetResourceAsync("ActivityLog.AddNewProduct"), product);
@@ -328,6 +331,8 @@ namespace Nop.Plugin.Api.Controllers
             await UpdateStoreMappingsAsync(product, productDelta.Dto.StoreIds);
 
             await UpdateAclRolesAsync(product, productDelta.Dto.RoleIds);
+
+            await UpdateTierPricesAsync(product, productDelta.Dto.TierPrices);
 
             await _productService.UpdateProductAsync(product);
 
@@ -548,6 +553,44 @@ namespace Nop.Plugin.Api.Controllers
             await _productService.UpdateHasDiscountsAppliedAsync(product);
         }
 
+        private async Task AddTierPricesAsync(Product product, List<TierPriceDto> tierPrices)
+        { 
+            //Se nulo, apenas apaga os tier price existentes.
+            if (tierPrices == null)
+            {
+                return;
+            }
+
+            //Insere os tier prices
+            foreach (var tierPrice in tierPrices)
+            {
+                tierPrice.ProductId = product.Id;
+                await _productService.InsertTierPriceAsync(tierPrice.ToEntity());
+            }            
+        }
+
+        private async Task UpdateTierPricesAsync(Product product, List<TierPriceDto> tierPrices)
+        {
+            //Exclui os tier prices existentes.
+            var existingTierPrices = await _productService.GetTierPricesByProductAsync(product.Id);
+            foreach (var tierPrice in existingTierPrices)
+            {
+                await _productService.DeleteTierPriceAsync(tierPrice);
+            }
+
+            //Se nulo, apenas apaga os tier price existentes.
+            if (tierPrices == null)
+            {
+                return;
+            }
+
+            //Insere os tier prices
+            foreach (var tierPrice in tierPrices)
+            {
+                tierPrice.ProductId = product.Id;
+                await _productService.InsertTierPriceAsync(tierPrice.ToEntity());
+            }
+        }
         private async Task UpdateProductManufacturersAsync(Product product, List<int> passedManufacturerIds)
         {
             // If no manufacturers specified then there is nothing to map 

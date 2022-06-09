@@ -18,6 +18,12 @@ namespace Nop.Plugin.Api.Services
         }
     }
 
+    public static class CustomerDocuments
+    {
+        public static string CPFCNPJ_ATTRIBUTE_NAME = "CPF/CNPJ";
+        public static string RGIE_ATTRIBUTE_NAME = "RG/IE";
+    }
+
     public static class EnumExtensions
     {
         public static string GetEnumDescription(this CustomerDocumentsEnums.ECustomerDocuments value)

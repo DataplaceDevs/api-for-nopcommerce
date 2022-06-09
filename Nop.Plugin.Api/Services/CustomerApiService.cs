@@ -24,6 +24,8 @@ using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Services.Common;
 using Nop.Services.Directory;
+using System.Xml;
+using Nop.Plugin.Api.DTO;
 
 namespace Nop.Plugin.Api.Services
 {
@@ -43,6 +45,7 @@ namespace Nop.Plugin.Api.Services
 		private readonly IRepository<Customer> _customerRepository;
         private readonly IRepository<GenericAttribute> _genericAttributeRepository;
         private readonly ILanguageService _languageService;
+        private readonly ICustomerAttributeService _customerAttributeService;
 
         private readonly IStoreContext _storeContext;
         private readonly IStoreMappingService _storeMappingService;
@@ -58,7 +61,9 @@ namespace Nop.Plugin.Api.Services
             IStaticCacheManager staticCacheManager,
             IAddressApiService addressApiService,
             IGenericAttributeService genericAttributeService,
-            ICurrencyService currencyService)
+            ICurrencyService currencyService,
+            ICustomerAttributeService customerAttributeService
+            )
         {
             _customerRepository = customerRepository;
             _genericAttributeRepository = genericAttributeRepository;
@@ -70,7 +75,8 @@ namespace Nop.Plugin.Api.Services
 			_addressApiService = addressApiService;
 			_genericAttributeService = genericAttributeService;
 			_currencyService = currencyService;
-		}
+            _customerAttributeService = customerAttributeService;
+        }
 
         public async Task<IList<CustomerDto>> GetCustomersDtosAsync(
             DateTime? createdAtMin = null, DateTime? createdAtMax = null, int limit = Constants.Configurations.DefaultLimit,
@@ -680,5 +686,85 @@ namespace Nop.Plugin.Api.Services
             //var store = await _storeContext.GetCurrentStoreAsync();
             await _genericAttributeService.SaveAttributeAsync(customer, NopCustomerDefaults.CurrencyIdAttribute, currency?.Id ?? 0/*, store.Id*/);
         }
-	}
+
+        //private async Task SetCustomerAddressesAsync(Customer customer, CustomerDto customerDto)
+
+        public async Task SetCustomerAttributeAsync(AddressDto addressDto, int idCustomField, string value)
+        {
+            if (string.IsNullOrEmpty(value))
+            {
+                return;
+            }
+
+            var xmlDoc = new XmlDocument();
+            if (string.IsNullOrEmpty(addressDto.CustomAttributes))
+            {
+                var element1 = xmlDoc.CreateElement("Attributes");
+                xmlDoc.AppendChild(element1);
+            }
+            else
+                xmlDoc.LoadXml(addressDto.CustomAttributes);
+
+            var rootElement = (XmlElement)xmlDoc.SelectSingleNode(@"//Attributes");
+
+            XmlElement attributeElement = null;
+            //find existing
+            var nodeList1 = xmlDoc.SelectNodes(@"//Attributes/CustomerAttribute");
+            foreach (XmlNode node1 in nodeList1)
+            {
+                if (node1.Attributes?["ID"] == null)
+                    continue;
+
+                var str1 = node1.Attributes["ID"].InnerText.Trim();
+
+                if (!int.TryParse(str1, out var id))
+                    continue;
+
+                if (id != idCustomField)
+                    continue;
+
+                attributeElement = (XmlElement)node1;
+                break;
+            }
+
+            //create new one if not found
+            if (attributeElement == null)
+            {
+                attributeElement = xmlDoc.CreateElement("CustomerAttribute");
+                attributeElement.SetAttribute("ID", idCustomField.ToString());
+                rootElement.AppendChild(attributeElement);
+
+                var attributeValueElement = xmlDoc.CreateElement("CustomerAttributeValue");
+                attributeElement.AppendChild(attributeValueElement);
+
+                var attributeValueValueElement = xmlDoc.CreateElement("Value");
+                attributeValueValueElement.InnerText = value;
+                attributeValueElement.AppendChild(attributeValueValueElement);
+            }
+
+            //XmlElement attributeElement = null;
+            //attributeElement = xmlDoc.CreateElement("CustomerAttribute");
+            //attributeElement.SetAttribute("ID", idCustomField.ToString());
+            //rootElement.AppendChild(attributeElement);
+
+            //var attributeValueElement = xmlDoc.CreateElement("CustomerAttributeValue");
+            //attributeElement.AppendChild(attributeValueElement);
+
+            //var attributeValueValueElement = xmlDoc.CreateElement("Value");
+            //attributeValueValueElement.InnerText = value;
+            //attributeValueElement.AppendChild(attributeValueValueElement);
+
+            addressDto.CustomAttributes = xmlDoc.OuterXml;
+
+            return;
+        }
+
+        public async Task<int> GetCustomerAttributeId(string attributeName)
+        {
+            var attributes = await _customerAttributeService.GetAllCustomerAttributesAsync();
+            var customerAttribute = attributes.FirstOrDefault(x => x.Name.Equals(attributeName.Trim(), StringComparison.InvariantCultureIgnoreCase) == true);
+            return customerAttribute?.Id ?? 0;
+        }
+
+    }
 }

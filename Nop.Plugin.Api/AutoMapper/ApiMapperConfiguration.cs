@@ -17,6 +17,7 @@ using Nop.Plugin.Api.Areas.Admin.Models;
 using Nop.Plugin.Api.Domain;
 using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Categories;
+using Nop.Plugin.Api.DTO.CustomerAttributes;
 using Nop.Plugin.Api.DTO.CustomerRoles;
 using Nop.Plugin.Api.DTO.Customers;
 using Nop.Plugin.Api.DTO.Languages;
@@ -91,10 +92,12 @@ namespace Nop.Plugin.Api.AutoMapper
             CreateMap<Currency, CurrencyDto>();
 
             CreateMap<OrderNote, OrderNoteDto>();
-
             CreateMap<Download, DownloadDto>();
-
             CreateMap<StateProvince, StateProvinceDto>();
+            CreateMap<CustomerAttribute, CustomerAttributesDto>();
+
+            CreateMap<TierPrice, TierPriceDto>();
+            CreateMap<TierPriceDto, TierPrice>();
         }
 
         public int Order => 0;

@@ -218,24 +218,24 @@ namespace Nop.Plugin.Api.Helpers
             return orderDto;
 		}
 
-        public async Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote)
+        public Task<OrderNoteDto> PrepareOrderNoteDtoAsync(OrderNote orderNote)
         {            
-            return orderNote.ToDto();
+            return Task.FromResult(orderNote.ToDto());
         }
 
-        public async Task<DownloadDto> PrepareDownloadDtoAsync(Download download)
+        public Task<DownloadDto> PrepareDownloadDtoAsync(Download download)
         {
-            return download.ToDto();
+            return Task.FromResult(download.ToDto());
         }
 
-        public async Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince)
+        public Task<StateProvinceDto> PrepareStateProvinceDtoAsync(StateProvince stateProvince)
         {
-            return stateProvince.ToDto();
+            return Task.FromResult(stateProvince.ToDto());
         }
 
-        public async Task<CustomerAttributesDto> PrepareCustomerAttributesDtoAsync(CustomerAttribute customerAttribute)
+        public Task<CustomerAttributesDto> PrepareCustomerAttributesDtoAsync(CustomerAttribute customerAttribute)
         {
-            return customerAttribute.ToDto();
+            return Task.FromResult(customerAttribute.ToDto());
         }
 
         //public async Task<AddressDto> PrepareSpecificAttributeValuesAsync(string attributesXml, AddressDto addressDTO)

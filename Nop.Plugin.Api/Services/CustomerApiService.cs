@@ -689,11 +689,11 @@ namespace Nop.Plugin.Api.Services
 
         //private async Task SetCustomerAddressesAsync(Customer customer, CustomerDto customerDto)
 
-        public async Task SetCustomerAttributeAsync(AddressDto addressDto, int idCustomField, string value)
+        public Task SetCustomerAttributeAsync(AddressDto addressDto, int idCustomField, string value)
         {
             if (string.IsNullOrEmpty(value))
             {
-                return;
+                return Task.CompletedTask;
             }
 
             var xmlDoc = new XmlDocument();
@@ -755,8 +755,7 @@ namespace Nop.Plugin.Api.Services
             //attributeValueElement.AppendChild(attributeValueValueElement);
 
             addressDto.CustomAttributes = xmlDoc.OuterXml;
-
-            return;
+            return Task.CompletedTask;
         }
 
         public async Task<int> GetCustomerAttributeId(string attributeName)

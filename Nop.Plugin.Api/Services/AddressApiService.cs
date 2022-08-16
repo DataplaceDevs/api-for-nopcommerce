@@ -150,14 +150,16 @@ namespace Nop.Plugin.Api.Services
 
                 var nodeList2 = node1.SelectNodes(@"CustomerAttributeValue/Value");
 
-                var customerAttributeName = (await _customerAttributeService.GetCustomerAttributeByIdAsync(id)).Name.Trim().ToUpper();
+                var customerAttributeName = (await _customerAttributeService.GetCustomerAttributeByIdAsync(id))?.Name.Trim().ToUpper();
 
-                if (customerAttributeName.Equals(ECustomerDocuments.CPF_CNPJ.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
-                    addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
+                if (customerAttributeName != null)
+                {                
+                    if (customerAttributeName.Equals(ECustomerDocuments.CPF_CNPJ.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
+                        addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
 
-                else if (customerAttributeName.Equals(ECustomerDocuments.RG_IE.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
-                    addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
-
+                    else if (customerAttributeName.Equals(ECustomerDocuments.RG_IE.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
+                        addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
+                }
             }
             return addressDTO;
         }

@@ -54,5 +54,7 @@ namespace Nop.Plugin.Api.Services
         Task SetCustomerAttributeAsync(AddressDto addressDto, int idCustomField, string value);
 
         Task<int> GetCustomerAttributeId(string attributeName);
+        //Task<IList<string>> GetCustomerDocumentTypeAsync();
+
     }
 }

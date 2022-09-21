@@ -53,52 +53,55 @@ namespace Nop.Plugin.Api.Controllers
 		private readonly ICurrencyService _currencyService;
 		private readonly IMappingHelper _mappingHelper;
 		private readonly INewsLetterSubscriptionService _newsLetterSubscriptionService;
+        private readonly ICustomerDocumentsApiService _customerDocumentsApiService;
 
-		// We resolve the customer settings this way because of the tests.
-		// The auto mocking does not support concreate types as dependencies. It supports only interfaces.
-		private CustomerSettings _customerSettings;
+        // We resolve the customer settings this way because of the tests.
+        // The auto mocking does not support concreate types as dependencies. It supports only interfaces.
+        private CustomerSettings _customerSettings;
 
-		public CustomersController(
-			ICustomerApiService customerApiService,
-			IJsonFieldsSerializer jsonFieldsSerializer,
-			IAclService aclService,
-			ICustomerService customerService,
-			IStoreMappingService storeMappingService,
-			IStoreService storeService,
-			IDiscountService discountService,
-			ICustomerActivityService customerActivityService,
-			ILocalizationService localizationService,
-			ICustomerRolesHelper customerRolesHelper,
-			IGenericAttributeService genericAttributeService,
-			IEncryptionService encryptionService,
-			IFactory<Customer> factory,
-			ICountryService countryService,
-			IMappingHelper mappingHelper,
-			INewsLetterSubscriptionService newsLetterSubscriptionService,
-			IPictureService pictureService, ILanguageService languageService,
-			IPermissionService permissionService,
-			IAddressService addressService,
-			IAuthenticationService authenticationService,
-			ICurrencyService currencyService) :
-			base(jsonFieldsSerializer, aclService, customerService, storeMappingService, storeService, discountService, customerActivityService,
-				 localizationService, pictureService)
-		{
-			_customerApiService = customerApiService;
-			_factory = factory;
-			_countryService = countryService;
-			_mappingHelper = mappingHelper;
-			_newsLetterSubscriptionService = newsLetterSubscriptionService;
-			_languageService = languageService;
-			_permissionService = permissionService;
-			_addressService = addressService;
-			_authenticationService = authenticationService;
-			_currencyService = currencyService;
-			_encryptionService = encryptionService;
-			_genericAttributeService = genericAttributeService;
-			_customerRolesHelper = customerRolesHelper;
-		}
+        public CustomersController(
+            ICustomerApiService customerApiService,
+            IJsonFieldsSerializer jsonFieldsSerializer,
+            IAclService aclService,
+            ICustomerService customerService,
+            IStoreMappingService storeMappingService,
+            IStoreService storeService,
+            IDiscountService discountService,
+            ICustomerActivityService customerActivityService,
+            ILocalizationService localizationService,
+            ICustomerRolesHelper customerRolesHelper,
+            IGenericAttributeService genericAttributeService,
+            IEncryptionService encryptionService,
+            IFactory<Customer> factory,
+            ICountryService countryService,
+            IMappingHelper mappingHelper,
+            INewsLetterSubscriptionService newsLetterSubscriptionService,
+            IPictureService pictureService, ILanguageService languageService,
+            IPermissionService permissionService,
+            IAddressService addressService,
+            IAuthenticationService authenticationService,
+            ICurrencyService currencyService
+            , ICustomerDocumentsApiService customerDocumentsApiService) :
+            base(jsonFieldsSerializer, aclService, customerService, storeMappingService, storeService, discountService, customerActivityService,
+                 localizationService, pictureService)
+        {
+            _customerApiService = customerApiService;
+            _factory = factory;
+            _countryService = countryService;
+            _mappingHelper = mappingHelper;
+            _newsLetterSubscriptionService = newsLetterSubscriptionService;
+            _languageService = languageService;
+            _permissionService = permissionService;
+            _addressService = addressService;
+            _authenticationService = authenticationService;
+            _currencyService = currencyService;
+            _encryptionService = encryptionService;
+            _genericAttributeService = genericAttributeService;
+            _customerRolesHelper = customerRolesHelper;
+            _customerDocumentsApiService = customerDocumentsApiService;
+        }
 
-		private CustomerSettings CustomerSettings
+        private CustomerSettings CustomerSettings
 		{
 			get
 			{
@@ -313,11 +316,20 @@ namespace Nop.Plugin.Api.Controllers
             var newCustomer = await _factory.InitializeAsync();
 			customerDelta.Merge(newCustomer);
 
-            var idCPFCNPJ = await _customerApiService.GetCustomerAttributeId(CustomerDocuments.CPFCNPJ_ATTRIBUTE_NAME);
-            var idRGIE = await _customerApiService.GetCustomerAttributeId(CustomerDocuments.RGIE_ATTRIBUTE_NAME);
-            await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idCPFCNPJ, customerDelta.Dto.BillingAddress.InscriFed);
-            await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idRGIE, customerDelta.Dto.BillingAddress.InscriEst);
-            
+            var customerDocumentType = _customerDocumentsApiService.GetCustomerDocumentTypeAsync().Result;
+
+            if (customerDocumentType[CustomerDocumentsEnums.ETypeDocument.InscriFed.GetEnumValue()] != null)
+            {
+                var idCPFCNPJ = await _customerApiService.GetCustomerAttributeId(customerDocumentType[CustomerDocumentsEnums.ETypeDocument.InscriFed.GetEnumValue()]);
+                await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idCPFCNPJ, customerDelta.Dto.BillingAddress.InscriFed);
+            }
+
+            if (customerDocumentType[CustomerDocumentsEnums.ETypeDocument.InscriEst.GetEnumValue()] != null)
+            {
+                var idRGIE = await _customerApiService.GetCustomerAttributeId(customerDocumentType[CustomerDocumentsEnums.ETypeDocument.InscriEst.GetEnumValue()]);
+                await _customerApiService.SetCustomerAttributeAsync(customerDelta.Dto.BillingAddress, idRGIE, customerDelta.Dto.BillingAddress.InscriEst);
+            }
+
             await CustomerService.InsertCustomerAsync(newCustomer);
 
             ICollection<AddressDto> addressesDto = new List<AddressDto>();
@@ -428,7 +440,7 @@ namespace Nop.Plugin.Api.Controllers
             return new RawJsonActionResult(json);
 		}
 
-		[HttpPut]
+        [HttpPut]
 		[Route("/api/customers/{id}", Name = "UpdateCustomer")]
 		[ProducesResponseType(typeof(CustomersRootObject), (int)HttpStatusCode.OK)]
 		[ProducesResponseType(typeof(ErrorsRootObject), 422)]

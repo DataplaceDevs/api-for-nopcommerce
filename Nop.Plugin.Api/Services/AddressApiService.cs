@@ -17,6 +17,7 @@ using Nop.Services.Directory;
 
 using Nop.Plugin.Api.Helpers;
 using static Nop.Plugin.Api.Services.CustomerDocumentsEnums;
+using Nop.Core;
 
 namespace Nop.Plugin.Api.Services
 {
@@ -29,6 +30,7 @@ namespace Nop.Plugin.Api.Services
 
         private readonly IGenericAttributeService _genericAttributeService;        
         private readonly ICustomerAttributeService _customerAttributeService;
+        private readonly ICustomerDocumentsApiService _customerDocumentsApiService;
 
         public AddressApiService(
             IRepository<Address> addressRepository,
@@ -36,16 +38,17 @@ namespace Nop.Plugin.Api.Services
             IStaticCacheManager staticCacheManager,
             ICountryService countryService,
             IGenericAttributeService genericAttributeService,
-            ICustomerAttributeService customerAttributeService
+            ICustomerAttributeService customerAttributeService,
+            ICustomerDocumentsApiService customerDocumentsApiService
             )
-		{
+        {
             _addressRepository = addressRepository;
             _customerAddressMappingRepository = customerAddressMappingRepository;
             _cacheManager = staticCacheManager;
 			_countryService = countryService;
-
             _genericAttributeService = genericAttributeService;
             _customerAttributeService = customerAttributeService;
+            _customerDocumentsApiService = customerDocumentsApiService;
         }
 
         /// <summary>
@@ -153,15 +156,30 @@ namespace Nop.Plugin.Api.Services
                 var customerAttributeName = (await _customerAttributeService.GetCustomerAttributeByIdAsync(id))?.Name.Trim().ToUpper();
 
                 if (customerAttributeName != null)
-                {                
-                    if (customerAttributeName.Equals(ECustomerDocuments.CPF_CNPJ.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
-                        addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
+                {
+                    var customerDocumentType = _customerDocumentsApiService.GetCustomerDocumentTypeAsync().Result;
+                    if (customerDocumentType[ETypeDocument.InscriFed.GetEnumValue()] != null)
+                    {
+                        if (customerAttributeName.Equals(customerDocumentType[ETypeDocument.InscriFed.GetEnumValue()], StringComparison.InvariantCultureIgnoreCase))
+                            addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
+                    }
+                    else
+                    if (customerDocumentType[ETypeDocument.InscriEst.GetEnumValue()] != null)
+                    {
+                        if (customerAttributeName.Equals(customerDocumentType[CustomerDocumentsEnums.ETypeDocument.InscriEst.GetEnumValue()], StringComparison.InvariantCultureIgnoreCase))
+                            addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
+                    }
+                    //if (customerAttributeName.Equals(ECustomerDocuments.CPF_CNPJ.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
+                    //    addressDTO.InscriFed = nodeList2[0].InnerText.Trim();
 
-                    else if (customerAttributeName.Equals(ECustomerDocuments.RG_IE.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
-                        addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
+                    //else if (customerAttributeName.Equals(ECustomerDocuments.RG_IE.GetEnumDescription(), StringComparison.InvariantCultureIgnoreCase))
+                    //    addressDTO.InscriEst = nodeList2[0].InnerText.Trim();
                 }
             }
             return addressDTO;
         }
+
+        
+
     }
 }

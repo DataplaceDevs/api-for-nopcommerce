@@ -50,8 +50,8 @@ namespace Nop.Plugin.Api.Services
         private readonly IStoreContext _storeContext;
         private readonly IStoreMappingService _storeMappingService;
         private readonly IRepository<NewsLetterSubscription> _subscriptionRepository;
-        
-		public CustomerApiService(
+
+        public CustomerApiService(
             IRepository<Customer> customerRepository,
             IRepository<GenericAttribute> genericAttributeRepository,
             IRepository<NewsLetterSubscription> subscriptionRepository,
@@ -765,5 +765,42 @@ namespace Nop.Plugin.Api.Services
             return customerAttribute?.Id ?? 0;
         }
 
+
+        //public async Task<IList<string>> GetCustomerDocumentTypeAsync()
+        //{
+        //    IList<string> federalCustomerDocumentType = new List<string>();
+
+        //    var store = _storeContext.GetCurrentStore();
+
+        //    if (store == null)
+        //    {
+        //        return await Task.FromResult(new List<string> { null, null });
+        //    }
+
+        //    var storeDto = await _dtoHelper.PrepareStoreDTOAsync(store);
+
+        //    var defaultLanguage = storeDto.DefaultLanguageId;
+        //    var result = storeDto.Languages.Find(x => x.Id == defaultLanguage);
+        //    if (result != null)
+        //    {
+        //        switch (result.UniqueSeoCode.Trim().ToUpper())
+        //        {
+        //            case "PT":
+        //                federalCustomerDocumentType.Add(CustomerDocuments.CPFCNPJ_ATTRIBUTE_NAME);
+        //                federalCustomerDocumentType.Add(CustomerDocuments.RGIE_ATTRIBUTE_NAME);
+        //                break;
+        //            case "ES":
+        //                federalCustomerDocumentType.Add(CustomerDocuments.RFC_ATTRIBUTE_NAME);
+        //                federalCustomerDocumentType.Add(null);
+        //                break;
+        //            default:
+        //                federalCustomerDocumentType.Add(CustomerDocuments.CPFCNPJ_ATTRIBUTE_NAME);
+        //                federalCustomerDocumentType.Add(CustomerDocuments.RGIE_ATTRIBUTE_NAME);
+        //                break;
+        //        }
+        //        return await Task.FromResult(federalCustomerDocumentType);
+        //    }
+        //    return await Task.FromResult(new List<string> { null, null });
+        //}
     }
 }

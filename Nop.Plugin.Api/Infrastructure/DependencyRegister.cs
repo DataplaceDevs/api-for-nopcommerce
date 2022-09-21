@@ -86,6 +86,7 @@ namespace Nop.Plugin.Api.Infrastructure
             services.AddScoped<ITopicService, TopicService>();
 
             services.AddScoped<IAddressApiService, AddressApiService>();
+            services.AddScoped<ICustomerDocumentsApiService, CustomerDocumentsApiService>();
 
             // replace IAuthenticationService CookieAutheticationService (used in NopCommerce web) with BearerTokenOrCookieAuthenticationService that will combine Bearer token  (used in Nop api plugin) and Cookies authentication
             services.Replace(ServiceDescriptor.Scoped<Nop.Services.Authentication.IAuthenticationService, BearerTokenOrCookieAuthenticationService>());

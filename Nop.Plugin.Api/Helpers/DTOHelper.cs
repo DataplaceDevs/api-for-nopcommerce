@@ -203,17 +203,43 @@ namespace Nop.Plugin.Api.Helpers
 
 			orderDto.OrderItems = await (await _orderService.GetOrderItemsAsync(order.Id)).SelectAwait(async item => await PrepareOrderItemDTOAsync(item)).ToListAsync();
 
-			orderDto.BillingAddress = (await _addressService.GetAddressByIdAsync(order.BillingAddressId))?.ToDto();
-            orderDto.BillingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.BillingAddress.CountryId ?? 0)).TwoLetterIsoCode;
-            orderDto.BillingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.BillingAddress.StateProvinceId ?? 0)).Abbreviation;
-            orderDto.BillingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
-            orderDto.BillingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.BillingAddress.CustomAttributes, orderDto.BillingAddress);
 
+            //BillingAddress
+			orderDto.BillingAddress = (await _addressService.GetAddressByIdAsync(order.BillingAddressId))?.ToDto();
+            if (orderDto.BillingAddress != null)
+            {
+                //orderDto.BillingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.BillingAddress.CountryId ?? 0)).TwoLetterIsoCode;            
+                var billingAddressCountryName = (await _countryService.GetCountryByIdAsync(orderDto.BillingAddress?.CountryId ?? 0));
+                if (billingAddressCountryName != null)
+                    orderDto.BillingAddress.CountryName = billingAddressCountryName.TwoLetterIsoCode;
+
+                //orderDto.BillingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.BillingAddress.StateProvinceId ?? 0)).Abbreviation;
+                var billingAddressStateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.BillingAddress?.StateProvinceId ?? 0));
+                if (billingAddressStateProvinceAbbreviation != null)
+                    orderDto.BillingAddress.StateProvinceAbbreviation = billingAddressStateProvinceAbbreviation.Abbreviation;
+
+                orderDto.BillingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
+                orderDto.BillingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.BillingAddress.CustomAttributes, orderDto.BillingAddress);
+            }
+
+
+            // ShippingAddress
             orderDto.ShippingAddress = (await _addressService.GetAddressByIdAsync(order.ShippingAddressId ?? 0))?.ToDto();
-            orderDto.ShippingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.ShippingAddress.CountryId ?? 0)).TwoLetterIsoCode;
-            orderDto.ShippingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.ShippingAddress.StateProvinceId ?? 0)).Abbreviation;
-            orderDto.ShippingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
-            orderDto.ShippingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.ShippingAddress.CustomAttributes, orderDto.ShippingAddress);
+            if (orderDto.ShippingAddress != null)
+            {
+                //orderDto.ShippingAddress.CountryName = (await _countryService.GetCountryByIdAsync(orderDto.ShippingAddress.CountryId ?? 0)).TwoLetterIsoCode;
+                var shippingAddressCountryName = (await _countryService.GetCountryByIdAsync(orderDto.ShippingAddress?.CountryId ?? 0));
+                if (shippingAddressCountryName != null)
+                    orderDto.ShippingAddress.CountryName = shippingAddressCountryName.TwoLetterIsoCode;
+
+                //orderDto.ShippingAddress.StateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.ShippingAddress.StateProvinceId ?? 0)).Abbreviation;            
+                var shippingAddressStateProvinceAbbreviation = (await _stateProvinceService.GetStateProvinceByIdAsync(orderDto.ShippingAddress?.StateProvinceId ?? 0));
+                if (shippingAddressStateProvinceAbbreviation != null)
+                    orderDto.ShippingAddress.StateProvinceAbbreviation = shippingAddressStateProvinceAbbreviation.Abbreviation;
+
+                orderDto.ShippingAddress.CustomAttributes = _genericAttributeService.GetAttributesForEntityAsync(orderDto.CustomerId ?? 0, "Customer").Result.FirstOrDefault(x => x.Key == "CustomCustomerAttributes")?.Value;
+                orderDto.ShippingAddress = await _addressApiService.PrepareSpecificAttributeValuesAsync(orderDto.ShippingAddress.CustomAttributes, orderDto.ShippingAddress);
+            }
 
             return orderDto;
 		}

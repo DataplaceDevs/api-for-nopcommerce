@@ -21,7 +21,8 @@ namespace Nop.Plugin.Api.DTO.Orders
         ///     Gets or sets a value indicating whether a customer chose "pick up in store" shipping option
         /// </summary>
         [JsonProperty("pick_up_in_store")]
-        public bool? PickUpInStore { get; set; }
+        //public bool? PickUpInStore { get; set; }
+        public bool PickupInStore { get; set; } // No Nop.Core essa propriedade não pode receber nulo e no nome estava incorreto.
 
         /// <summary>
         ///     Gets or sets the payment method system name

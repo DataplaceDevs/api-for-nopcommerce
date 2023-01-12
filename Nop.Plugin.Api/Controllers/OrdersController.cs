@@ -457,7 +457,7 @@ namespace Nop.Plugin.Api.Controllers
 			orderDelta.Merge(currentOrder);
 
 			customer.BillingAddressId = currentOrder.BillingAddressId = orderDelta.Dto.BillingAddress.Id;
-			customer.ShippingAddressId = currentOrder.ShippingAddressId = orderDelta.Dto.ShippingAddress.Id;
+			customer.ShippingAddressId = currentOrder.ShippingAddressId = orderDelta.Dto.ShippingAddress?.Id;
 
 			await CustomerService.UpdateCustomerAsync(customer); // update billing and shipping addresses
 

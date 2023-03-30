@@ -427,9 +427,9 @@ namespace Nop.Plugin.Api.Controllers
 
 			var customer = await CustomerService.GetCustomerByIdAsync(currentOrder.CustomerId);
 
-			var shippingRequired = await (await _orderService.GetOrderItemsAsync(currentOrder.Id)).AnyAwaitAsync(async item => !(await _productService.GetProductByIdAsync(item.Id)).IsFreeShipping);
+			var shippingRequired = await (await _orderService.GetOrderItemsAsync(currentOrder.Id)).AnyAwaitAsync(async item => !(await _productService.GetProductByIdAsync(item.ProductId)).IsFreeShipping);
 
-			if (shippingRequired)
+            if (shippingRequired)
 			{
 				var isValid = true;
 

@@ -7,11 +7,14 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Nop.Core.Domain.Directory;
 using Nop.Plugin.Api.Attributes;
+using Nop.Plugin.Api.Delta;
 using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Errors;
+using Nop.Plugin.Api.DTO.Products;
 using Nop.Plugin.Api.Helpers;
 using Nop.Plugin.Api.JSON.ActionResults;
 using Nop.Plugin.Api.JSON.Serializers;
+using Nop.Plugin.Api.ModelBinders;
 using Nop.Plugin.Api.Services;
 using Nop.Services.Authentication;
 using Nop.Services.Customers;
@@ -78,7 +81,7 @@ namespace Nop.Plugin.Api.Controllers
 
 			var allCurrencies = await _currencyService.GetAllCurrenciesAsync(storeId: storeId ?? 0);
 
-			IList<CurrencyDto> currenciesAsDto = await allCurrencies.SelectAwait(async language => await _dtoHelper.PrepareCurrencyDtoAsync(language)).ToListAsync();
+			IList<CurrencyDto> currenciesAsDto = allCurrencies.Select(language => _dtoHelper.PrepareCurrencyDtoAsync(language).Result).ToList();
 
 			var currenciesRootObject = new CurrenciesRootObject
 			{
@@ -139,5 +142,34 @@ namespace Nop.Plugin.Api.Controllers
 			await _customerApiService.SetCustomerCurrencyAsync(customer, currency);
 			return NoContent();
 		}
-	}
+
+        [HttpPut]
+        [Route("/api/currencies/rate", Name = "SetCurrentCurrencyRate")]
+        [ProducesResponseType(typeof(void), (int)HttpStatusCode.NoContent)]
+        [ProducesResponseType(typeof(ErrorsRootObject), (int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(ErrorsRootObject), (int)HttpStatusCode.Unauthorized)]
+        public async Task<IActionResult> SetCurrentCurrencyRate([FromBody]
+            [ModelBinder(typeof(JsonModelBinder<CurrencyDto>))]
+            Delta<CurrencyDto> currencyDelta)
+        {
+            var customer = await _authenticationService.GetAuthenticatedCustomerAsync();
+            if (customer is null)
+                return Error(HttpStatusCode.Unauthorized);
+
+            if (currencyDelta is null)
+                return Error(HttpStatusCode.NoContent);
+
+            var _currency = await _currencyService.GetCurrencyByIdAsync(currencyDelta.Dto.Id);
+
+            if (_currency is null)
+                return Error(HttpStatusCode.NotFound);
+
+            _currency.Rate = currencyDelta.Dto.Rate;
+            _currency.UpdatedOnUtc = DateTime.UtcNow;
+
+            await _currencyService.UpdateCurrencyAsync(_currency);
+
+            return Ok(_currency);
+        }
+    }
 }

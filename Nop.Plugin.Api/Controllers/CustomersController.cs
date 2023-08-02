@@ -550,9 +550,28 @@ namespace Nop.Plugin.Api.Controllers
 			// so we do it by hand here.
 			await PopulateAddressCountryNamesAsync(updatedCustomer);
 
-			// Set the fist and last name separately because they are not part of the customer entity, but are saved in the generic attributes.
 
-			updatedCustomer.FirstName = await _genericAttributeService.GetAttributeAsync<string>(currentCustomer, NopCustomerDefaults.FirstNameAttribute);
+            var newCustomer = await _factory.InitializeAsync();
+            customerDelta.Merge(newCustomer);
+
+            var newCustomerDto = newCustomer.ToDto();
+
+            newCustomerDto.BillingAddress = billingAddressDto;
+
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.StreetAddressAttribute, customerDelta.Dto.BillingAddress.Address1);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.GenderAttribute, customerDelta.Dto.Gender);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.DateOfBirthAttribute, customerDelta.Dto.DateOfBirth);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.ZipPostalCodeAttribute, customerDelta.Dto.BillingAddress.ZipPostalCode);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CityAttribute, customerDelta.Dto.BillingAddress.City);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CountyAttribute, customerDelta.Dto.BillingAddress.County);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.CountryIdAttribute, customerDelta.Dto.BillingAddress.CountryId);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.StateProvinceIdAttribute, customerDelta.Dto.BillingAddress.StateProvinceId);
+            await _genericAttributeService.SaveAttributeAsync(newCustomer, NopCustomerDefaults.PhoneAttribute, customerDelta.Dto.BillingAddress.PhoneNumber);
+
+
+            // Set the fist and last name separately because they are not part of the customer entity, but are saved in the generic attributes.
+
+            updatedCustomer.FirstName = await _genericAttributeService.GetAttributeAsync<string>(currentCustomer, NopCustomerDefaults.FirstNameAttribute);
 			updatedCustomer.LastName = await _genericAttributeService.GetAttributeAsync<string>(currentCustomer, NopCustomerDefaults.LastNameAttribute);
 			updatedCustomer.LanguageId = await _genericAttributeService.GetAttributeAsync<int>(currentCustomer, NopCustomerDefaults.LanguageIdAttribute);
 			updatedCustomer.CurrencyId = await _genericAttributeService.GetAttributeAsync<int>(currentCustomer, NopCustomerDefaults.CurrencyIdAttribute);

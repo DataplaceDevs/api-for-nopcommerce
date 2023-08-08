@@ -8,7 +8,9 @@ using Nop.Core.Domain.Directory;
 using Nop.Core.Domain.Localization;
 using Nop.Core.Domain.Media;
 using Nop.Core.Domain.Orders;
+using Nop.Core.Domain.Shipping;
 using Nop.Core.Domain.Stores;
+using Nop.Core.Domain.Tax;
 using Nop.Core.Domain.Topics;
 using Nop.Plugin.Api.DTO;
 using Nop.Plugin.Api.DTO.Categories;
@@ -22,6 +24,8 @@ using Nop.Plugin.Api.DTO.Products;
 using Nop.Plugin.Api.DTO.ShoppingCarts;
 using Nop.Plugin.Api.DTO.SpecificationAttributes;
 using Nop.Plugin.Api.DTO.Stores;
+using Nop.Plugin.Api.DTO.Warehouses;
+using Nop.Plugin.Api.DTOs.Taxes;
 using Nop.Plugin.Api.DTOs.Topics;
 using Nop.Plugin.Api.MappingExtensions;
 using Nop.Plugin.Api.Services;
@@ -182,8 +186,16 @@ namespace Nop.Plugin.Api.Helpers
 
 			return orderDto;
 		}
+        public async Task<WarehouseDto> PrepareWarehouseDtoAsync(Warehouse warehouse)
+        {
+            var warehouseDto = warehouse.ToDto();
 
-		public TopicDto PrepareTopicDTO(Topic topic)
+            warehouseDto.Address = (await _addressService.GetAddressByIdAsync(warehouse.AddressId))?.ToDto();
+
+            return warehouseDto;
+        }
+
+        public TopicDto PrepareTopicDTO(Topic topic)
 		{
 			var topicDto = topic.ToDto();
 			return topicDto;
@@ -337,6 +349,11 @@ namespace Nop.Plugin.Api.Helpers
 			var addressDto = address.ToDto();
 			return addressDto;
 		}
+		public TaxCategoryDto prepareTaxCategoryDto(TaxCategory taxCategory)
+		{
+			var taxCategoryDto = taxCategory.ToDto();
+			return taxCategoryDto;
+		}
 
 		#region Private methods
 
@@ -391,6 +408,7 @@ namespace Nop.Plugin.Api.Helpers
 		private async Task PrepareProductAttributesAsync(ProductDto productDto)
 		{
 			var productAttributeMappings = await _productAttributeService.GetProductAttributeMappingsByProductIdAsync(productDto.Id);
+			var productAttributeCombinations = await _productAttributeService.GetAllProductAttributeCombinationsAsync(productDto.Id);
 
 			if (productDto.ProductAttributeMappings == null)
 			{
@@ -406,6 +424,9 @@ namespace Nop.Plugin.Api.Helpers
 					productDto.ProductAttributeMappings.Add(productAttributeMappingDto);
 				}
 			}
+
+			PrepareProductAttributeCombinations(productAttributeCombinations, productDto);
+
 		}
 
 		private async Task<ProductAttributeMappingDto> PrepareProductAttributeMappingDtoAsync(
